@@ -114,7 +114,7 @@ export default function App() {
           Process vs product evidence of MCCR W.11-12 mastery — divergence as formative signal.
         </div>
 
-        <nav className="mt-6 flex flex-col gap-0.5">
+        <nav className="mt-6 flex flex-col gap-0.5" aria-label="Primary">
           {NAV.map((t) => {
             const isActive = tab === t.id;
             return (
@@ -122,7 +122,8 @@ export default function App() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className="group relative rounded-sm px-3 py-2 text-left"
-                style={isActive ? { background: 'rgba(242,241,237,0.07)' } : undefined}
+                style={isActive ? { background: '#26251e' } : undefined}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <span
                   className="absolute bottom-1.5 left-0 top-1.5 w-0.5 rounded-full"
@@ -131,12 +132,16 @@ export default function App() {
                 <span className="flex items-center justify-between text-[13px]" style={{ color: isActive ? 'var(--rail-ink)' : 'var(--rail-muted)', fontWeight: isActive ? 600 : 400 }}>
                   {t.label}
                   {t.id === 'queue' && queueCount > 0 && (
-                    <span className="font-data rounded-sm px-1 text-[10px] font-semibold" style={{ background: 'var(--status-serious)', color: '#191813' }}>
+                    <span
+                      className="font-data rounded-sm px-1 text-[10px] font-semibold"
+                      style={{ background: 'var(--status-serious)', color: '#191813' }}
+                      aria-label={`${queueCount} items awaiting judgment`}
+                    >
                       {queueCount}
                     </span>
                   )}
                 </span>
-                <span className="block text-[10px]" style={{ color: 'var(--rail-muted)', opacity: isActive ? 0.9 : 0.6 }}>
+                <span className="block text-[10px]" style={{ color: 'var(--rail-muted)' }}>
                   {t.caption}
                 </span>
               </button>
@@ -148,9 +153,10 @@ export default function App() {
           <div className="kicker mb-1.5" style={{ color: 'var(--rail-muted)' }}>Active session</div>
           <select
             className="w-full rounded-sm border-0 p-2 text-xs"
-            style={{ background: 'rgba(242,241,237,0.08)', color: 'var(--rail-ink)' }}
+            style={{ background: '#26251e', color: 'var(--rail-ink)' }}
             value={activeId}
             onChange={(e) => setActiveId(e.target.value)}
+            aria-label="Active session"
           >
             {sessions.map((s) => (
               <option key={s.id} value={s.id} style={{ color: '#16150f' }}>
@@ -166,18 +172,32 @@ export default function App() {
 
       {/* ---- content ---- */}
       <main className="min-w-0 flex-1 px-5 pb-16 pt-5 md:px-8">
-        {/* mobile nav */}
-        <div className="mb-4 flex flex-wrap gap-1 md:hidden">
-          {NAV.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="rounded-sm border px-2.5 py-1.5 text-xs"
-              style={tab === t.id ? { borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 600 } : { borderColor: 'var(--gridline)', color: 'var(--ink-secondary)' }}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* mobile nav + session switcher (the rail is hidden below md) */}
+        <div className="mb-4 space-y-2 md:hidden">
+          <nav className="flex flex-wrap gap-1" aria-label="Primary">
+            {NAV.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="rounded-sm border px-2.5 py-1.5 text-xs"
+                style={tab === t.id ? { borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 600 } : { borderColor: 'var(--gridline)', color: 'var(--ink-secondary)' }}
+                aria-current={tab === t.id ? 'page' : undefined}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          <select
+            className="w-full rounded-sm border p-2 text-xs"
+            style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+            value={activeId}
+            onChange={(e) => setActiveId(e.target.value)}
+            aria-label="Active session"
+          >
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
 
         <header className="mb-5 flex flex-wrap items-end justify-between gap-2 border-b pb-4" style={{ borderColor: 'var(--gridline)' }}>
@@ -195,19 +215,27 @@ export default function App() {
         </header>
 
         {error && (
-          <div className="card mb-4 border-l-2 p-3 text-sm" style={{ borderLeftColor: 'var(--status-critical)' }}>
+          <div role="alert" className="card mb-4 border-l-2 p-3 text-sm" style={{ borderLeftColor: 'var(--status-critical)' }}>
             <b>Error:</b> {error}
           </div>
         )}
         {progress && (
-          <div className="card mb-4 p-3 text-sm">
+          <div className="card mb-4 p-3 text-sm" aria-live="polite">
             <div className="mb-1.5 flex justify-between">
               <span>
                 Grading with {config.provider} / {config.model} — {progress.label}
               </span>
               <span className="font-data text-xs">{progress.done}/{progress.total}</span>
             </div>
-            <div className="h-1 w-full" style={{ background: 'var(--div-mid)' }}>
+            <div
+              className="h-1 w-full"
+              style={{ background: 'var(--div-mid)' }}
+              role="progressbar"
+              aria-valuenow={progress.done}
+              aria-valuemin={0}
+              aria-valuemax={progress.total}
+              aria-label="Grading progress"
+            >
               <div
                 className="h-1 transition-all"
                 style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%`, background: 'var(--accent)' }}

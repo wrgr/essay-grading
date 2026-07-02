@@ -11,19 +11,29 @@ const KEYS = {
 };
 
 export function loadConfig(): LLMConfig {
-  try {
-    const raw = localStorage.getItem(KEYS.config);
-    if (raw) return JSON.parse(raw) as LLMConfig;
-  } catch {
-    /* fall through */
-  }
-  return {
+  const fallback: LLMConfig = {
     provider: 'anthropic',
     apiKey: '',
     model: PROVIDER_DEFAULTS.anthropic.defaultModel,
     advisoryModel: PROVIDER_DEFAULTS.anthropic.defaultAdvisory,
     temperature: undefined,
   };
+  try {
+    const raw = localStorage.getItem(KEYS.config);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<LLMConfig>;
+    // Validate against schema drift from older stored versions.
+    const provider = parsed.provider && parsed.provider in PROVIDER_DEFAULTS ? parsed.provider : fallback.provider;
+    return {
+      provider,
+      apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey : '',
+      model: typeof parsed.model === 'string' && parsed.model ? parsed.model : PROVIDER_DEFAULTS[provider].defaultModel,
+      advisoryModel: typeof parsed.advisoryModel === 'string' && parsed.advisoryModel ? parsed.advisoryModel : undefined,
+      temperature: typeof parsed.temperature === 'number' && Number.isFinite(parsed.temperature) ? parsed.temperature : undefined,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 export function saveConfig(cfg: LLMConfig): void {
@@ -64,8 +74,23 @@ export function loadStoredSessions(): Session[] {
 }
 
 export function saveStoredSessions(sessions: Session[]): void {
-  // Exemplars are bundled with the app; only persist user-created / regraded sessions.
-  localStorage.setItem(KEYS.sessions, JSON.stringify(sessions.filter((s) => !s.isExemplar || s.gradedLive)));
+  // Exemplars are bundled with the app; persist them only once the user has changed
+  // them — a live re-grade OR a teacher override on the demo scores. (Overrides are
+  // calibration data; losing them on reload would be a silent data loss.)
+  const worthKeeping = sessions.filter(
+    (s) => !s.isExemplar || s.gradedLive || s.scores.some((r) => r.teacherOverride),
+  );
+  try {
+    localStorage.setItem(KEYS.sessions, JSON.stringify(worthKeeping));
+  } catch {
+    // Quota exceeded (long traces / many sessions): drop bundled exemplars from the
+    // payload before giving up entirely — user-created sessions take priority.
+    try {
+      localStorage.setItem(KEYS.sessions, JSON.stringify(worthKeeping.filter((s) => !s.isExemplar)));
+    } catch {
+      console.warn('TGFWA: localStorage quota exceeded; sessions not persisted this change.');
+    }
+  }
 }
 
 export function downloadJSON(filename: string, data: unknown): void {

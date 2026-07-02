@@ -25,17 +25,32 @@ function normalizePass(raw: unknown, channel: Channel, source: { essay?: string;
 
   // Verify quotes actually appear in the source (evidence-provenance guard, spec §4:
   // "No score without evidence"). Drop fabricated quotes; if all quotes for a scored
-  // pass are fabricated, demote the pass to no-evidence.
-  const sourceText =
-    channel === 'product'
-      ? (source.essay ?? '')
-      : (source.trace?.turns.filter((t) => t.speaker === 'student').map((t) => t.text).join('\n') ?? '');
+  // pass are fabricated, demote the pass to no-evidence. On the trace channel, quotes
+  // must come from STUDENT turns specifically — this is the attribution guard's
+  // client-side backstop: a quote of assistant text fails the lookup even if the
+  // model claimed a student turnId for it.
   const normalize = (s: string) => s.replace(/\s+/g, ' ').replace(/["'‘’“”]/g, "'").toLowerCase();
-  const haystack = normalize(sourceText);
+  const studentTurns = (source.trace?.turns ?? []).filter((t) => t.speaker === 'student');
+
+  const locateInStudentTurns = (quote: string): number | undefined => {
+    const q = normalize(quote);
+    return studentTurns.find((t) => normalize(t.text).includes(q))?.turnId;
+  };
 
   const evidence = (r.evidence ?? [])
-    .filter((e) => e.quote && haystack.includes(normalize(e.quote)))
-    .map((e) => ({ turnId: e.turnId ?? undefined, quote: e.quote, reasoning: e.reasoning ?? '' }));
+    .map((e) => {
+      if (!e.quote) return null;
+      if (channel === 'product') {
+        return normalize(source.essay ?? '').includes(normalize(e.quote))
+          ? { quote: e.quote, reasoning: e.reasoning ?? '' }
+          : null;
+      }
+      // Trace: find the student turn the quote actually lives in; correct a wrong
+      // turnId rather than trusting the model's citation.
+      const actualTurnId = locateInStudentTurns(e.quote);
+      return actualTurnId !== undefined ? { turnId: actualTurnId, quote: e.quote, reasoning: e.reasoning ?? '' } : null;
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
 
   if (score !== 'no-evidence' && (r.evidence ?? []).length > 0 && evidence.length === 0) {
     score = 'no-evidence';
@@ -66,22 +81,18 @@ async function gradeCriterion(
   for (let i = 0; i < PASSES_PER_CRITERION; i++) {
     // One criterion per call (spec §5.1); passes run sequentially per criterion so a
     // transient failure can be retried once without burning the whole batch.
+    const request = {
+      system,
+      prompt,
+      schema: GRADING_SCHEMA,
+      useAdvisoryModel: criterion.referenceability === 'weak',
+    };
     let raw: unknown;
     try {
-      raw = await llm.completeJSON({
-        system,
-        prompt,
-        schema: GRADING_SCHEMA,
-        useAdvisoryModel: criterion.referenceability === 'weak',
-      });
-    } catch (err) {
-      // one retry per pass
-      raw = await llm.completeJSON({
-        system,
-        prompt,
-        schema: GRADING_SCHEMA,
-        useAdvisoryModel: criterion.referenceability === 'weak',
-      });
+      raw = await llm.completeJSON(request);
+    } catch {
+      // one retry per pass (transient API/parse failures); a second failure propagates
+      raw = await llm.completeJSON(request);
     }
     passes.push(normalizePass(raw, channel, source));
   }

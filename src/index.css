@@ -8,18 +8,26 @@
   --page: #f2f1ed;
   --ink-primary: #16150f;
   --ink-secondary: #55534b;
-  --ink-muted: #8b887d;
+  --ink-muted: #6e6b60; /* 5.3:1 on white — #8b887d failed AA (3.55:1) */
   --gridline: #e4e2da;
   --baseline: #c6c3b8;
   --border-hairline: rgba(22, 21, 15, 0.09);
   --series-trace: #2a78d6;
   --series-product: #1baf7a;
+  /* Text-only variants of the series hues (the mark colors fail AA as small text) */
+  --series-trace-text: #1c5cab; /* 6.6:1 on white */
+  --series-product-text: #0d7a52; /* 5.4:1 on white */
   --div-pos: #e34948;
   --div-neg: #2a78d6;
+  /* Chip backgrounds carrying white text need ≥4.5:1 */
+  --div-pos-strong: #d03b3b; /* white text: 4.8:1 */
+  --div-neg-strong: #256abf; /* white text: 5.4:1 */
   --div-mid: #edebe4;
   --status-good: #0ca30c;
+  --status-good-strong: #067806; /* white text on it: 5.5:1; as text on white: 5.7:1 */
   --status-warning: #fab219;
   --status-serious: #ec835a;
+  --status-serious-text: #a34a1f; /* 5.9:1 on white — #ec835a as text failed AA (2.6:1) */
   --status-critical: #d03b3b;
   --seq-100: #cde2fb;
   --seq-200: #9ec5f4;
@@ -32,9 +40,9 @@
   /* App chrome */
   --rail-bg: #191813;
   --rail-ink: #f2f1ed;
-  --rail-muted: #96938a;
+  --rail-muted: #a5a299; /* 7:1 on rail */
   --rail-line: rgba(242, 241, 237, 0.1);
-  --accent: #2a78d6;
+  --accent: #256abf; /* white text on it: 5.4:1 (#2a78d6 was 4.4:1) */
 }
 
 html {
@@ -97,4 +105,14 @@ select:focus-visible {
 
 ::selection {
   background: rgba(42, 120, 214, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -82,7 +82,7 @@ export function ChatSimulator({ config, onCreateSession }: {
           )}
           {messages.map((m, i) => (
             <div key={i} className="text-sm">
-              <span className="mr-1 font-semibold" style={{ color: m.role === 'user' ? 'var(--series-trace)' : 'var(--ink-muted)' }}>
+              <span className="mr-1 font-semibold" style={{ color: m.role === 'user' ? 'var(--series-trace-text)' : 'var(--ink-muted)' }}>
                 {m.role === 'user' ? 'student' : 'assistant'} · turn {i + 1}:
               </span>
               <span className="whitespace-pre-wrap">{m.content}</span>
@@ -97,6 +97,7 @@ export function ChatSimulator({ config, onCreateSession }: {
             style={{ borderColor: 'var(--gridline)' }}
             rows={2}
             placeholder={config.apiKey ? 'Write as the student… (Enter to send, Shift+Enter for newline)' : 'Add an API key in Settings to chat'}
+            aria-label="Student message"
             value={input}
             disabled={!config.apiKey}
             onChange={(e) => setInput(e.target.value)}
@@ -109,7 +110,7 @@ export function ChatSimulator({ config, onCreateSession }: {
           />
           <button
             className="rounded px-4 text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: 'var(--series-trace)' }}
+            style={{ background: 'var(--accent)' }}
             disabled={busy || !config.apiKey || !input.trim()}
             onClick={() => void send()}
           >
@@ -126,6 +127,7 @@ export function ChatSimulator({ config, onCreateSession }: {
         <textarea
           className="flex-1 rounded border p-2 text-sm"
           style={{ borderColor: 'var(--gridline)' }}
+          aria-label="Final essay text"
           value={essay}
           onChange={(e) => setEssay(e.target.value)}
         />
@@ -138,7 +140,7 @@ export function ChatSimulator({ config, onCreateSession }: {
         />
         <button
           className="mt-2 rounded px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
-          style={{ background: 'var(--series-trace)' }}
+          style={{ background: 'var(--accent)' }}
           disabled={messages.length < 2 || !essay.trim()}
           title={messages.length < 2 ? 'Have at least one exchange first' : !essay.trim() ? 'Add the final essay' : ''}
           onClick={createSession}

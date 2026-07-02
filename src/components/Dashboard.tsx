@@ -74,7 +74,13 @@ export function Dashboard({ session, rubric, onUpdate }: {
             </p>
           )}
         </div>
-        <button className="shrink-0 text-xs underline" style={{ color: 'var(--ink-secondary)' }} onClick={() => setWhy((v) => !v)}>
+        <button
+          className="shrink-0 text-xs underline"
+          style={{ color: 'var(--ink-secondary)' }}
+          onClick={() => setWhy((v) => !v)}
+          aria-expanded={why}
+          aria-label={why ? 'Hide interpretation rationale' : 'Show interpretation rationale'}
+        >
           {why ? 'hide' : 'why?'}
         </button>
       </div>
@@ -126,8 +132,8 @@ export function Dashboard({ session, rubric, onUpdate }: {
         {openDim && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">
-              <MiniStat label="Trace" value={openDim.traceScore} color="var(--series-trace)" />
-              <MiniStat label="Product" value={openDim.productScore} color="var(--series-product)" />
+              <MiniStat label="Trace" value={openDim.traceScore} color="var(--series-trace-text)" />
+              <MiniStat label="Product" value={openDim.productScore} color="var(--series-product-text)" />
               <div className="rounded-sm border p-2 text-center" style={{ borderColor: 'var(--gridline)' }}>
                 <div className="kicker">Divergence</div>
                 <div className="mt-1"><DivergenceChip value={openDim.divergence} /></div>
@@ -143,7 +149,7 @@ export function Dashboard({ session, rubric, onUpdate }: {
                     <div className="mb-1.5 text-sm">
                       <span className="font-data text-xs font-semibold">{c.criterionId}</span>{' '}
                       {c.referenceability === 'weak' && (
-                        <span className="rounded-sm px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--div-mid)', color: 'var(--status-serious)' }}>teacher-reserve</span>
+                        <span className="rounded-sm px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--div-mid)', color: 'var(--status-serious-text)' }}>teacher-reserve</span>
                       )}
                       <div className="text-xs" style={{ color: 'var(--ink-secondary)' }}>{c.statement}</div>
                     </div>
@@ -166,7 +172,7 @@ export function Dashboard({ session, rubric, onUpdate }: {
         <div className="space-y-3 text-sm">
           {session.trace.turns.map((t) => (
             <div key={t.turnId} className="rounded-sm p-2.5" style={{ background: t.speaker === 'student' ? 'rgba(42,120,214,0.06)' : 'var(--page)' }}>
-              <div className="kicker mb-1" style={{ color: t.speaker === 'student' ? 'var(--series-trace)' : 'var(--ink-muted)' }}>
+              <div className="kicker mb-1" style={{ color: t.speaker === 'student' ? 'var(--series-trace-text)' : 'var(--ink-muted)' }}>
                 turn {t.turnId} · {t.speaker}
               </div>
               {t.text}
@@ -232,9 +238,9 @@ function Bar({ value, color }: { value: number | null; color: string }) {
 
 export function DivergenceChip({ value }: { value: number | null }) {
   if (value === null)
-    return <span className="rounded-sm px-2 py-0.5 text-center text-[11px]" style={{ background: 'var(--div-mid)', color: 'var(--ink-muted)' }}>n/a</span>;
+    return <span className="rounded-sm px-2 py-0.5 text-center text-[11px]" style={{ background: 'var(--div-mid)', color: 'var(--ink-secondary)' }}>n/a</span>;
   const mag = Math.abs(value);
-  const bg = mag < 1 ? 'var(--div-mid)' : value > 0 ? 'var(--div-pos)' : 'var(--div-neg)';
+  const bg = mag < 1 ? 'var(--div-mid)' : value > 0 ? 'var(--div-pos-strong)' : 'var(--div-neg-strong)';
   const fg = mag < 1 ? 'var(--ink-secondary)' : '#ffffff';
   const arrow = mag < 1 ? '≈' : value > 0 ? '▲' : '▼';
   return (

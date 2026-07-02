@@ -22,9 +22,14 @@ export function EvidenceTrail({ record, criterion, onUpdate, startOpen }: {
 
   return (
     <div className="rounded border p-2 text-xs" style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}>
-      <button className="flex w-full items-center justify-between gap-2" onClick={() => setOpen((v) => !v)}>
+      <button
+        className="flex w-full items-center justify-between gap-2"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={`${record.channel} channel score for ${criterion.criterionId}: ${record.noEvidence && !record.teacherOverride ? 'no evidence' : `${displayed} out of 5`}. Toggle evidence trail.`}
+      >
         <span className="flex items-center gap-2">
-          <span className="font-semibold uppercase tracking-wide" style={{ color: record.channel === 'trace' ? 'var(--series-trace)' : 'var(--series-product)' }}>
+          <span className="font-semibold uppercase tracking-wide" style={{ color: record.channel === 'trace' ? 'var(--series-trace-text)' : 'var(--series-product-text)' }}>
             {record.channel}
           </span>
           {record.noEvidence && !record.teacherOverride ? (
@@ -33,7 +38,7 @@ export function EvidenceTrail({ record, criterion, onUpdate, startOpen }: {
             <span className="tabular text-sm font-semibold">{displayed}<span className="font-normal" style={{ color: 'var(--ink-muted)' }}>/5</span></span>
           )}
           {record.teacherOverride && (
-            <span className="rounded px-1.5 py-0.5 font-medium text-white" style={{ background: 'var(--status-good)' }}>
+            <span className="rounded px-1.5 py-0.5 font-medium text-white" style={{ background: 'var(--status-good-strong)' }}>
               ✓ teacher score (authoritative)
             </span>
           )}
@@ -44,7 +49,7 @@ export function EvidenceTrail({ record, criterion, onUpdate, startOpen }: {
             </span>
           )}
           {record.needsReview && !record.teacherOverride && (
-            <span className="rounded px-1.5 py-0.5" style={{ background: 'var(--div-mid)', color: 'var(--status-serious)' }}>⚑ needs your judgment</span>
+            <span className="rounded px-1.5 py-0.5" style={{ background: 'var(--div-mid)', color: 'var(--status-serious-text)' }}>⚑ needs your judgment</span>
           )}
         </span>
         <span style={{ color: 'var(--ink-muted)' }}>{open ? '▾ hide evidence trail' : '▸ evidence trail'}</span>
@@ -81,7 +86,7 @@ export function EvidenceTrail({ record, criterion, onUpdate, startOpen }: {
             </div>
           )}
           {record.reviewReasons.length > 0 && (
-            <ul className="list-inside list-disc" style={{ color: 'var(--status-serious)' }}>
+            <ul className="list-inside list-disc" style={{ color: 'var(--status-serious-text)' }}>
               {record.reviewReasons.map((r, i) => <li key={i}>{r}</li>)}
             </ul>
           )}
@@ -132,13 +137,14 @@ function OverrideForm({ onSave, onCancel }: { onSave: (score: number, rationale:
         className="w-full rounded border p-1"
         style={{ borderColor: 'var(--gridline)' }}
         placeholder="Rationale (required — becomes labeled calibration data)"
+        aria-label="Override rationale"
         value={rationale}
         onChange={(e) => setRationale(e.target.value)}
       />
       <div className="flex gap-2">
         <button
           className="rounded px-2 py-1 font-medium text-white disabled:opacity-40"
-          style={{ background: 'var(--series-trace)' }}
+          style={{ background: 'var(--accent)' }}
           disabled={!rationale.trim()}
           onClick={() => onSave(score, rationale.trim())}
         >
