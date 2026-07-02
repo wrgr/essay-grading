@@ -19,6 +19,13 @@ export function SessionsPanel(props: {
 
   return (
     <div className="space-y-4">
+      <ol className="card flex flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2.5 text-xs" aria-label="Demo path" style={{ color: 'var(--ink-secondary)' }}>
+        {['Pick an exemplar below', 'Open its dashboard', 'Click a dimension to see the evidence', 'Score the routed items in “Needs Your Judgment”'].map((step, i) => (
+          <li key={i} className="flex items-center gap-1.5">
+            <span className="font-data font-semibold" style={{ color: 'var(--accent)' }}>{i + 1}</span> {step}
+          </li>
+        ))}
+      </ol>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <button
           className="rounded-sm px-3 py-1.5 font-medium text-white"

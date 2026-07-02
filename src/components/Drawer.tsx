@@ -1,7 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** Right-hand slide-over used for all drill-in detail: criterion evidence, source
- *  texts, imports. Keeps the main surfaces scannable. */
+ *  texts, imports. Accessible dialog: focus moves in on open, is trapped while open,
+ *  and returns to the invoking element on close; Escape closes. */
 export function Drawer({ open, onClose, title, kicker, children, wide }: {
   open: boolean;
   onClose: () => void;
@@ -10,16 +13,43 @@ export function Drawer({ open, onClose, title, kicker, children, wide }: {
   children: ReactNode;
   wide?: boolean;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      // Trap focus within the panel
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (el) => !el.hasAttribute('disabled'),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panelRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     return () => {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      restoreRef.current?.focus();
     };
   }, [open, onClose]);
 
@@ -31,9 +61,15 @@ export function Drawer({ open, onClose, title, kicker, children, wide }: {
         className="absolute inset-0"
         style={{ background: 'rgba(22, 21, 15, 0.4)', animation: 'drawer-fade 160ms ease' }}
         onClick={onClose}
+        aria-hidden="true"
       />
       <div
-        className="absolute right-0 top-0 flex h-full flex-col overflow-hidden"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className="absolute right-0 top-0 flex h-full flex-col overflow-hidden outline-none"
         style={{
           width: wide ? 'min(760px, 96vw)' : 'min(540px, 96vw)',
           background: 'var(--surface-1)',
@@ -50,6 +86,7 @@ export function Drawer({ open, onClose, title, kicker, children, wide }: {
             className="shrink-0 rounded-sm border px-2 py-1 text-xs"
             style={{ borderColor: 'var(--gridline)', color: 'var(--ink-secondary)' }}
             onClick={onClose}
+            aria-label="Close dialog"
           >
             Close ✕
           </button>

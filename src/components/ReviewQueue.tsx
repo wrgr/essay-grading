@@ -77,7 +77,7 @@ function QueueRow({ r, rubric, onOpen }: { r: ScoreRecord; rubric: Rubric; onOpe
   return (
     <button className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02]" onClick={onOpen}>
       <span className="font-data shrink-0 text-xs font-semibold">{r.criterionId}</span>
-      <span className="kicker shrink-0" style={{ color: r.channel === 'trace' ? 'var(--series-trace)' : 'var(--series-product)' }}>
+      <span className="kicker shrink-0" style={{ color: r.channel === 'trace' ? 'var(--series-trace-text)' : 'var(--series-product-text)' }}>
         {r.channel}
       </span>
       <span className="min-w-0 flex-1 truncate text-xs" style={{ color: 'var(--ink-secondary)' }} title={c.statement}>
@@ -85,7 +85,7 @@ function QueueRow({ r, rubric, onOpen }: { r: ScoreRecord; rubric: Rubric; onOpe
       </span>
       <span className="hidden shrink-0 gap-1 md:flex">
         {r.reviewReasons.map((reason, i) => (
-          <span key={i} className="rounded-sm px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--div-mid)', color: 'var(--status-serious)' }}
+          <span key={i} className="rounded-sm px-1.5 py-0.5 text-[10px]" style={{ background: 'var(--div-mid)', color: 'var(--status-serious-text)' }}
             title={reason}>
             {reason.startsWith('Teacher-reserve') ? 'reserve' : reason.startsWith('High inter-pass') ? 'high spread' : 'thin evidence'}
           </span>

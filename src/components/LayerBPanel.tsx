@@ -98,6 +98,8 @@ function Row({ h, grid, maxCount }: { h: RelianceMode; grid: Record<RelianceMode
             key={r}
             className="flex h-12 items-center justify-center rounded-sm text-sm font-semibold tabular"
             style={{ background: SEQ[step], color: dark ? '#fff' : 'var(--ink-primary)' }}
+            role="img"
+            aria-label={`${h} help-seeking, ${r} response-use: ${count} segment${count === 1 ? '' : 's'}`}
             title={`${h} help-seeking × ${r} response-use: ${count} segment(s)`}
           >
             {count || ''}

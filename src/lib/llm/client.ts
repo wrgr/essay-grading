@@ -122,7 +122,8 @@ class OpenAIClient implements LLMClient {
     const model = (req.useAdvisoryModel && this.cfg.advisoryModel) || this.cfg.model;
     const body: Record<string, unknown> = {
       model,
-      max_tokens: req.maxTokens ?? 4096,
+      // max_completion_tokens replaces max_tokens; reasoning models reject the old name
+      max_completion_tokens: req.maxTokens ?? 4096,
       messages: [
         { role: 'system', content: req.system },
         { role: 'user', content: req.prompt },
@@ -149,7 +150,7 @@ class OpenAIClient implements LLMClient {
   async chat(req: ChatRequest): Promise<string> {
     const body: Record<string, unknown> = {
       model: this.cfg.model,
-      max_tokens: req.maxTokens ?? 1024,
+      max_completion_tokens: req.maxTokens ?? 1024,
       messages: [{ role: 'system', content: req.system }, ...req.messages],
     };
     if (this.cfg.temperature !== undefined) body.temperature = this.cfg.temperature;
