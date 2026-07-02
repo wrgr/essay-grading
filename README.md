@@ -37,14 +37,9 @@ React 18 + Vite + TypeScript + Tailwind; fully static (GitHub Pages). **No backe
 
 ## Deploying
 
-`npm run build` emits a relocatable static bundle (`base: './'`). The `gh-pages` branch carries the built demo; to refresh it:
+Deployment is automatic: every push to `main` runs `.github/workflows/deploy.yml`, which verifies the exemplars, builds, and publishes `dist/` to GitHub Pages via the Actions deployment path (repo Settings → Pages → Source should read "GitHub Actions"; the workflow enables this on first run). The site serves at `https://<owner>.github.io/essay-grading/`.
 
-```bash
-npm run build && cp dist/index.html dist/404.html && touch dist/.nojekyll
-git worktree add /tmp/ghp gh-pages
-rm -rf /tmp/ghp/* && cp -r dist/. /tmp/ghp/
-cd /tmp/ghp && git add -A && git commit -m "Deploy" && git push origin gh-pages
-```
+`npm run build` emits a relocatable static bundle (`base: './'`), so the same `dist/` also works from any subpath or local file server.
 
 ## Research scaffolding
 
