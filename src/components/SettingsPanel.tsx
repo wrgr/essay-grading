@@ -84,18 +84,24 @@ export function SettingsPanel({ config, onChange }: { config: LLMConfig; onChang
         </label>
       </div>
 
-      <div className="card p-4 text-xs leading-relaxed" style={{ color: 'var(--ink-secondary)' }}>
-        <b>Privacy & data handling.</b> This demo is a static page: sessions, scores, overrides, rubric edits, and your
-        API key are stored in this browser (localStorage) and never sent to any server we operate. The only network
-        traffic is the calls this page makes directly to your selected LLM provider with your key, when you run live
-        grading or the writing-session simulator. BYO-key mode is for demos and research piloting — a keyed serverless
-        proxy is required before any classroom deployment with real student data (FERPA).
-        <br /><br />
-        <b>Bias mitigations baked into grading:</b> one criterion per call (halo prevention) · evidence-before-score
-        with verbatim-quote verification · 3 passes with median + spread · quote-length caps (verbosity bias) ·
-        "length is not quality" instruction · grading model is configurable independently of the model the student
-        worked with (self-preference bias).
-      </div>
+      <details className="card p-4 text-xs leading-relaxed" style={{ color: 'var(--ink-secondary)' }}>
+        <summary className="cursor-pointer text-sm font-semibold" style={{ color: 'var(--ink-primary)' }}>
+          Privacy, data handling &amp; bias mitigations
+        </summary>
+        <p className="mt-2">
+          <b>Privacy.</b> This demo is a static page: sessions, scores, overrides, rubric edits, and your API key are
+          stored in this browser (localStorage) and never sent to any server we operate. The only network traffic is
+          the calls this page makes directly to your selected LLM provider with your key. BYO-key mode is for demos and
+          research piloting — a keyed serverless proxy is required before any classroom deployment with real student
+          data (FERPA).
+        </p>
+        <p className="mt-2">
+          <b>Bias mitigations baked into grading:</b> one criterion per call (halo prevention) · evidence-before-score
+          with verbatim-quote verification · 3 passes with median + spread · quote-length caps (verbosity bias) ·
+          "length is not quality" instruction · grading model is configurable independently of the model the student
+          worked with (self-preference bias).
+        </p>
+      </details>
     </div>
   );
 }

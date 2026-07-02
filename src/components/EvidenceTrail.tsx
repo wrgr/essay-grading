@@ -10,12 +10,13 @@ const CONF_COLOR: Record<string, string> = {
 
 /** The expandable "evidence trail" (spec §8): evidence quotes → reasoning → anchor
  *  matched → score → inter-pass agreement. Structured justification, not raw CoT. */
-export function EvidenceTrail({ record, criterion, onUpdate }: {
+export function EvidenceTrail({ record, criterion, onUpdate, startOpen }: {
   record: ScoreRecord;
   criterion: RubricCriterion;
   onUpdate: (update: (s: Session) => Session) => void;
+  startOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen ?? false);
   const [editing, setEditing] = useState(false);
   const displayed = record.teacherOverride ? record.teacherOverride.score : record.median;
 

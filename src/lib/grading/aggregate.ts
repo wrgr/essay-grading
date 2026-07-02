@@ -61,10 +61,12 @@ export function aggregatePasses(args: {
     confidence = 'med'; // e.g. single evidence instance (spec §4)
   }
 
+  // Routing (spec §5.3/§8): teacher-reserve criteria and high-spread scores only.
+  // Single-evidence records show medium confidence but are not queued — flagging
+  // every thin record buries the signals the teacher actually needs to act on.
   const reviewReasons: string[] = [];
   if (referenceability === 'weak') reviewReasons.push('Teacher-reserve criterion (weak referenceability) — LLM read is advisory only');
   if ((spread ?? 0) >= 2) reviewReasons.push(`High inter-pass spread (${spread}) — possible rubric ambiguity or borderline case`);
-  if (!noEvidence && distinctEvidence < 2 && confidence === 'med') reviewReasons.push('Single evidence instance');
 
   return {
     criterionId,

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { RelianceMode, Session } from '../types';
+import { Drawer } from './Drawer';
 
 const MODES: RelianceMode[] = ['passive', 'active', 'constructive'];
 // Sequential blue ramp (validated reference palette) for the count heatmap.
@@ -6,6 +8,7 @@ const SEQ = ['var(--div-mid)', 'var(--seq-100)', 'var(--seq-200)', 'var(--seq-30
 
 export function LayerBPanel({ session }: { session: Session }) {
   const b = session.layerB;
+  const [showSegments, setShowSegments] = useState(false);
   if (!b) {
     return (
       <div className="card p-8 text-center text-sm" style={{ color: 'var(--ink-muted)' }}>
@@ -18,10 +21,9 @@ export function LayerBPanel({ session }: { session: Session }) {
   return (
     <div className="space-y-4">
       <div className="card p-4">
-        <h2 className="text-sm font-semibold">How the student worked with AI — not a writing score</h2>
+        <h2 className="panel-title">Not a writing score</h2>
         <p className="mt-1 text-xs" style={{ color: 'var(--ink-secondary)' }}>
-          RelianceScope 3×3 coding (help-seeking × response-use) with verification behavior. Layer B is diagnostic
-          context for interpreting trace/product divergence; it is never folded into rubric scores.
+          How the student worked with AI (RelianceScope) — context for reading the divergence, never folded into rubric scores.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           <StatTile label="Dominant help-seeking" value={b.dominantHelpSeeking} />
@@ -35,7 +37,12 @@ export function LayerBPanel({ session }: { session: Session }) {
       </div>
 
       <div className="card p-4">
-        <h3 className="mb-3 text-sm font-semibold">Segment counts on the 3×3 grid</h3>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h3 className="panel-title">Segment counts on the 3×3 grid</h3>
+          <button className="text-xs underline" style={{ color: 'var(--ink-secondary)' }} onClick={() => setShowSegments(true)}>
+            segment-by-segment coding ›
+          </button>
+        </div>
         <div className="inline-grid grid-cols-[7rem_repeat(3,5.5rem)] gap-0.5 text-xs">
           <div />
           {MODES.map((m) => (
@@ -50,8 +57,7 @@ export function LayerBPanel({ session }: { session: Session }) {
         </div>
       </div>
 
-      <div className="card p-4">
-        <h3 className="mb-2 text-sm font-semibold">Segment-by-segment coding</h3>
+      <Drawer open={showSegments} onClose={() => setShowSegments(false)} title="Segment-by-segment coding" kicker="Layer B · RelianceScope" wide>
         <table className="w-full text-left text-xs">
           <thead>
             <tr style={{ color: 'var(--ink-muted)' }}>
@@ -65,16 +71,16 @@ export function LayerBPanel({ session }: { session: Session }) {
           <tbody>
             {b.segments.map((s, i) => (
               <tr key={i} className="border-t align-top" style={{ borderColor: 'var(--gridline)' }}>
-                <td className="py-1.5 pr-2 tabular">{s.segmentTurns.join('–')}</td>
-                <td className="py-1.5 pr-2">{s.helpSeeking}</td>
-                <td className="py-1.5 pr-2">{s.responseUse}</td>
-                <td className="py-1.5 pr-2">{s.verification ? '✓ yes' : '—'}</td>
-                <td className="py-1.5" style={{ color: 'var(--ink-secondary)' }}>{s.evidence}</td>
+                <td className="font-data py-2 pr-2">{s.segmentTurns.join('–')}</td>
+                <td className="py-2 pr-2">{s.helpSeeking}</td>
+                <td className="py-2 pr-2">{s.responseUse}</td>
+                <td className="py-2 pr-2">{s.verification ? '✓ yes' : '—'}</td>
+                <td className="py-2" style={{ color: 'var(--ink-secondary)' }}>{s.evidence}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </Drawer>
     </div>
   );
 }
