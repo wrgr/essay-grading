@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Chart palette (validated, dataviz reference) — unchanged */
+  --surface-1: #ffffff;
+  --page: #f2f1ed;
+  --ink-primary: #16150f;
+  --ink-secondary: #55534b;
+  --ink-muted: #8b887d;
+  --gridline: #e4e2da;
+  --baseline: #c6c3b8;
+  --border-hairline: rgba(22, 21, 15, 0.09);
+  --series-trace: #2a78d6;
+  --series-product: #1baf7a;
+  --div-pos: #e34948;
+  --div-neg: #2a78d6;
+  --div-mid: #edebe4;
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --seq-100: #cde2fb;
+  --seq-200: #9ec5f4;
+  --seq-300: #6da7ec;
+  --seq-400: #3987e5;
+  --seq-500: #256abf;
+  --seq-600: #184f95;
+  --seq-700: #0d366b;
+
+  /* App chrome */
+  --rail-bg: #191813;
+  --rail-ink: #f2f1ed;
+  --rail-muted: #96938a;
+  --rail-line: rgba(242, 241, 237, 0.1);
+  --accent: #2a78d6;
+}
+
+html {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--page);
+  color: var(--ink-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-variation-settings: 'SOFT' 40, 'WONK' 0;
+  letter-spacing: -0.015em;
+}
+
+.font-data {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(22, 21, 15, 0.03);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Section heading used across panels */
+.panel-title {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+/* Small uppercase kicker label */
+.kicker {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+::selection {
+  background: rgba(42, 120, 214, 0.18);
+}
