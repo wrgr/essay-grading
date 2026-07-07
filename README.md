@@ -16,6 +16,8 @@ Plus: instructor review queue with overrides, versioned rubrics, a grading relia
 
 ## Quick start
 
+Prerequisites: Python ≥ 3.10, Node ≥ 20 (Docker optional, for deployment).
+
 ```bash
 make setup      # python venv + npm install
 make seed       # seed demo users and content
@@ -47,10 +49,63 @@ No API key? The platform still runs: scoring falls back to keyword matching, and
 ## Development
 
 ```bash
-make test       # backend pytest suite
+make test       # backend pytest suite (147 tests, no network or keys needed)
 make build      # typecheck + production frontend build
 make e2e        # zero-API-key end-to-end smoke test
 ```
+
+CI (`.github/workflows/ci.yml`) runs the backend suite and the strict-TypeScript
+frontend build on every push and pull request.
+
+## Deployment
+
+The platform deploys as a **single process**: uvicorn serves the API and, when
+`frontend/dist/` exists, the built SPA and its assets on the same port. All
+state lives in one SQLite database plus generated report files under
+`backend/data/` — persist that directory and you've persisted everything.
+
+### Option A — Docker (recommended)
+
+```bash
+cp .env.example .env    # optional: add provider keys; empty = keyword fallback
+docker compose up --build
+```
+
+Serves everything on http://localhost:8000. The `app-data` named volume holds
+`backend/data/` (database + reports) across container rebuilds.
+
+### Option B — bare metal
+
+```bash
+make setup && make build         # install deps, build frontend/dist
+cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The app seeds demo users and content on first boot; `make seed` is only needed
+if you want the seed output printed explicitly.
+
+### Production checklist
+
+- **Change the demo passwords** (Admin → Users) or replace the seed accounts
+  before real use.
+- **Run behind TLS.** Put a reverse proxy (Caddy, nginx, etc.) in front.
+  Session cookies get the `Secure` flag when the app sees an HTTPS scheme — the
+  Docker image already runs uvicorn with `--proxy-headers` so the proxy's
+  `X-Forwarded-Proto` is honored; add those flags yourself on bare metal
+  (`--proxy-headers --forwarded-allow-ips '<proxy-ip>'`). Browser-supplied
+  (BYO) keys especially should never transit plain HTTP.
+- **Persist and back up `backend/data/`** (or point `ASSESSMENT_DATA_DIR` /
+  `ASSESSMENT_DB_PATH` somewhere durable). The SQLite file is the research
+  record: assessments, score records, evaluations, annotations.
+- **Provider keys** go in `.env` (see `.env.example`); they are read at startup
+  and never exposed to the browser. `DEFAULT_PROVIDER` picks the fallback
+  provider for users with no preference.
+- **Schema migrations are automatic**: on startup, `init_db()` widens existing
+  tables idempotently — upgrading the code and restarting is the whole
+  procedure.
+- **Scope note:** this is a research instrument. BYO-key mode and the demo
+  accounts are suited to pilots and demos; review your institution's data
+  handling requirements (e.g. FERPA) before collecting real student data.
 
 ## Importing legacy V5 reports (future work)
 

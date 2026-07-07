@@ -6,7 +6,8 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - path: .env
+        required: false   # runs in keyword-fallback mode without keys
     volumes:
       - app-data:/app/backend/data
 
