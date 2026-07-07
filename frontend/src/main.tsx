@@ -9,6 +9,7 @@ import { AuthProvider } from './auth';
 import AppShell from './AppShell';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import Settings from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -22,6 +23,7 @@ const router = createHashRouter([
     element: <AppShell />,
     children: [
       { path: '/', element: <Home /> },
+      { path: '/settings', element: <Settings /> },
     ],
   },
 ]);

@@ -6,8 +6,9 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import auth
+from .api import auth, content
 from .db import database as db
+from .db import seed_content
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
@@ -17,8 +18,10 @@ def create_app() -> FastAPI:
 
     db.init_db()
     db.seed_default_users()
+    seed_content.seed(verbose=False)
 
     app.include_router(auth.router)
+    app.include_router(content.router)
 
     @app.get("/api/health")
     def health():
