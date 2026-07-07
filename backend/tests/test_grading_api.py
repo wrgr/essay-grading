@@ -102,7 +102,7 @@ class FakeLLM:
 
 def test_grading_job_end_to_end(admin_client, monkeypatch):
     fake = FakeLLM()
-    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user: fake)
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
 
     r = admin_client.post("/api/assessments/exemplar-maya/grade",
                           headers={"X-Requested-With": "fetch"})
@@ -132,7 +132,7 @@ def test_grading_job_end_to_end(admin_client, monkeypatch):
 
 
 def test_grading_without_provider_is_409(admin_client, monkeypatch):
-    def raise_unconfigured(user):
+    def raise_unconfigured(user, override=None):
         raise llm_bridge.LLMNotConfigured("No LLM provider is configured on the server.")
     monkeypatch.setattr(llm_bridge, "make_llm_json", raise_unconfigured)
     r = admin_client.post("/api/assessments/exemplar-sam/grade",
@@ -142,7 +142,7 @@ def test_grading_without_provider_is_409(admin_client, monkeypatch):
 
 def test_sse_stream_replays_completed_job(admin_client, monkeypatch):
     fake = FakeLLM()
-    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user: fake)
+    monkeypatch.setattr(llm_bridge, "make_llm_json", lambda user, override=None: fake)
     r = admin_client.post("/api/assessments/exemplar-alex/grade",
                           headers={"X-Requested-With": "fetch"})
     job_id = r.json()["jobId"]

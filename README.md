@@ -32,7 +32,10 @@ Open http://localhost:5173 and sign in with a demo account:
 
 Change these before any non-demo use.
 
-No API key? The platform still runs: scoring falls back to keyword matching, and bundled exemplar sessions carry precomputed scores. Add provider keys in `.env` (copy `.env.example`) to enable live LLM grading — keys stay server-side and are never sent to the browser.
+No API key? The platform still runs: scoring falls back to keyword matching, and bundled exemplar sessions carry precomputed scores. Two ways to enable live LLM grading:
+
+- **Server keys** (default): add provider keys to `.env` (copy `.env.example`). They stay server-side and are never sent to the browser.
+- **Bring your own key**: any signed-in user can save a personal key under **Settings → Use your own API key**. It lives in that browser's localStorage only and rides on each of the user's grading requests as a header; the server uses it transiently and never stores or logs it. While set, it takes precedence over the server key.
 
 ## Architecture
 
@@ -48,6 +51,18 @@ make test       # backend pytest suite
 make build      # typecheck + production frontend build
 make e2e        # zero-API-key end-to-end smoke test
 ```
+
+## Importing legacy V5 reports (future work)
+
+Assessments produced by Performative Assessment V5 live on disk as
+`reports/<username>/*.md` (plus `.trace.json` writing-process sidecars and
+`_annotations/*.json` instructor verdicts) wherever that instance ran — they were
+never committed to git. An importer is planned but not yet built:
+`backend/app/services/report_parser.py` is retained precisely for it. The importer
+will walk a copied `reports/` folder, parse each Markdown report, and map the rows
+onto `create_assessment(assessment_id=…)` + `upsert_evaluation` (both idempotent,
+so re-running is safe), stamping rows with their original v2 schema version.
+Bring the report files within reach and it can be wired up.
 
 ## Exporting as a standalone repository
 

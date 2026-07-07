@@ -133,9 +133,12 @@ class DraftRequest(BaseModel):
 
 
 @router.post("/authoring/scenario-draft")
-def scenario_draft(body: DraftRequest, user: dict = Depends(security.require_staff)):
+def scenario_draft(body: DraftRequest, user: dict = Depends(security.require_staff),
+                   override: dict | None = Depends(llm_bridge.llm_override)):
     try:
-        _, model, cfg = llm_bridge.resolve_for_user(user)
+        _, model, cfg = llm_bridge.resolve_for_user(user, override)
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except llm_bridge.LLMNotConfigured as e:
         raise HTTPException(status_code=409, detail=str(e))
     draft = runner_mod.generate_scenario_draft(
@@ -155,9 +158,12 @@ def scenario_draft(body: DraftRequest, user: dict = Depends(security.require_sta
 
 
 @router.post("/authoring/prompt-draft")
-def prompt_draft(body: DraftRequest, user: dict = Depends(security.require_staff)):
+def prompt_draft(body: DraftRequest, user: dict = Depends(security.require_staff),
+                 override: dict | None = Depends(llm_bridge.llm_override)):
     try:
-        _, model, cfg = llm_bridge.resolve_for_user(user)
+        _, model, cfg = llm_bridge.resolve_for_user(user, override)
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except llm_bridge.LLMNotConfigured as e:
         raise HTTPException(status_code=409, detail=str(e))
     draft = runner_mod.generate_prompt_draft(

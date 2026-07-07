@@ -112,17 +112,40 @@ def save_item(path_kind: str, content_id: str, body: SavePayload,
 
 @router.get("/providers")
 def providers(user: dict = Depends(security.require_user)):
-    """Configured providers (a key is present server-side) with model lists.
-    Never returns key material."""
+    """All known providers with model lists and a `configured` flag (a server
+    key is present). Unconfigured providers are listed too so a user can pick
+    one with their own browser-supplied key. Never returns key material."""
     out = []
     for name, cfg in config.PROVIDERS.items():
-        if not llm.llm_is_available(cfg["api_key"]):
-            continue
+        configured = llm.llm_is_available(cfg["api_key"])
         models = llm.get_available_models(name, cfg)
         if name == "Ollama" and not models:
-            continue  # Ollama configured but not running — hide it
-        out.append({"name": name, "defaultModel": cfg["model"], "models": models})
+            continue  # Ollama not running — hide it
+        out.append({"name": name, "defaultModel": cfg["model"], "models": models,
+                    "configured": configured})
     return {"providers": out, "default": config.DEFAULT_PROVIDER}
+
+
+class ValidateKeyRequest(BaseModel):
+    apiKey: str
+    model: str | None = None
+
+
+@router.post("/providers/{name}/validate-key")
+def validate_key(name: str, body: ValidateKeyRequest,
+                 user: dict = Depends(security.require_user)):
+    """Liveness-check a browser-supplied key against a provider (Settings "Test
+    key"). The key is used for one minimal call and discarded — never stored,
+    never logged, never echoed back."""
+    cfg = config.provider_config(name)
+    if not cfg:
+        raise HTTPException(status_code=404, detail="Unknown provider.")
+    api_key = body.apiKey.strip()
+    if not api_key:
+        raise HTTPException(status_code=422, detail="An API key is required.")
+    ok, err = llm.validate_api_key(name, api_key, body.model or cfg["model"],
+                                   cfg["base_url"])
+    return {"ok": ok, "error": err}
 
 
 @router.get("/providers/{name}/status")

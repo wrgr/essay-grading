@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api } from '../api/client';
+import { api, clearByoKey, loadByoKey, saveByoKey } from '../api/client';
 import { useAuth } from '../auth';
 import type { User } from '../auth';
 
@@ -8,6 +8,7 @@ interface ProviderInfo {
   name: string;
   defaultModel: string;
   models: string[];
+  configured: boolean;
 }
 
 export default function Settings() {
@@ -22,11 +23,12 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
 
   const providers = data?.providers ?? [];
-  const selected = providers.find((p) => p.name === (provider || data?.default));
+  const configured = providers.filter((p) => p.configured);
+  const selected = configured.find((p) => p.name === (provider || data?.default)) ?? configured[0];
 
   async function save() {
     await api.put<User>('/api/auth/prefs', {
-      preferred_provider: provider || data?.default || '',
+      preferred_provider: provider || selected?.name || '',
       preferred_model: model || selected?.defaultModel || '',
     });
     await refresh();
@@ -43,75 +45,230 @@ export default function Settings() {
         </h1>
       </header>
 
-      <div className="card max-w-xl p-5">
-        <div className="panel-title">LLM grading preferences</div>
-        <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
-          API keys are configured on the server by an administrator and never leave it. Only
-          providers with a configured key appear here. With no provider configured, scoring
-          falls back to deterministic keyword matching.
-        </p>
+      <div className="space-y-4">
+        <div className="card max-w-xl p-5">
+          <div className="panel-title">Server LLM preferences</div>
+          <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+            Server-configured API keys are the default for grading. Only providers with a key in the
+            server's <span className="font-data">.env</span> appear here. With none configured (and no
+            browser key below), scoring falls back to deterministic keyword matching.
+          </p>
 
-        {isLoading && (
-          <div className="mt-4 text-sm" style={{ color: 'var(--ink-muted)' }}>
-            Loading providers…
-          </div>
+          {isLoading && (
+            <div className="mt-4 text-sm" style={{ color: 'var(--ink-muted)' }}>
+              Loading providers…
+            </div>
+          )}
+
+          {!isLoading && configured.length === 0 && (
+            <div className="mt-4 border-l-2 p-3 text-sm" style={{ borderLeftColor: 'var(--status-warning)' }}>
+              No LLM provider is configured on the server. Add a key to{' '}
+              <span className="font-data">.env</span> and restart — or supply your own key below.
+            </div>
+          )}
+
+          {configured.length > 0 && (
+            <>
+              <label className="mt-4 block text-xs font-semibold" htmlFor="pref-provider">
+                Provider
+              </label>
+              <select
+                id="pref-provider"
+                className="mt-1 w-full rounded-sm border p-2 text-sm"
+                style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+                value={provider || data?.default || ''}
+                onChange={(e) => {
+                  setProvider(e.target.value);
+                  setModel('');
+                }}
+              >
+                {configured.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <label className="mt-3 block text-xs font-semibold" htmlFor="pref-model">
+                Model
+              </label>
+              <select
+                id="pref-model"
+                className="mt-1 w-full rounded-sm border p-2 text-sm"
+                style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+                value={model || selected?.defaultModel || ''}
+                onChange={(e) => setModel(e.target.value)}
+              >
+                {(selected?.models ?? []).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => void save()}
+                className="mt-5 rounded-sm px-4 py-2 text-sm font-semibold text-white"
+                style={{ background: 'var(--accent)' }}
+              >
+                {saved ? 'Saved ✓' : 'Save preferences'}
+              </button>
+            </>
+          )}
+        </div>
+
+        <ByoKeyCard providers={providers} defaultProvider={data?.default ?? ''} />
+      </div>
+    </div>
+  );
+}
+
+/** Bring-your-own key: stored in THIS browser's localStorage only, sent with each
+ *  of your grading requests as headers, used transiently by the server, never
+ *  persisted or logged there. Takes precedence over the server key while set. */
+function ByoKeyCard({ providers, defaultProvider }: {
+  providers: ProviderInfo[];
+  defaultProvider: string;
+}) {
+  const existing = loadByoKey();
+  const [provider, setProvider] = useState(existing?.provider || defaultProvider || providers[0]?.name || '');
+  const [model, setModel] = useState(existing?.model ?? '');
+  const [apiKey, setApiKey] = useState(existing?.apiKey ?? '');
+  const [active, setActive] = useState(existing !== null);
+  const [status, setStatus] = useState<{ tone: 'ok' | 'bad' | 'info'; text: string } | null>(null);
+
+  const selected = providers.find((p) => p.name === provider) ?? providers[0];
+
+  function save() {
+    if (!apiKey.trim()) return;
+    saveByoKey({ provider: selected?.name ?? provider, model, apiKey: apiKey.trim() });
+    setActive(true);
+    setStatus({ tone: 'ok', text: 'Saved in this browser. Your key now rides on your grading requests.' });
+  }
+
+  function clear() {
+    clearByoKey();
+    setApiKey('');
+    setActive(false);
+    setStatus({ tone: 'info', text: 'Cleared — back to the server-configured provider (or keyword fallback).' });
+  }
+
+  async function test() {
+    if (!apiKey.trim() || !selected) return;
+    setStatus({ tone: 'info', text: 'Testing key…' });
+    try {
+      const res = await api.post<{ ok: boolean; error: string | null }>(
+        `/api/providers/${encodeURIComponent(selected.name)}/validate-key`,
+        { apiKey: apiKey.trim(), model: model || selected.defaultModel },
+      );
+      setStatus(res.ok
+        ? { tone: 'ok', text: 'Key works ✓' }
+        : { tone: 'bad', text: `Key rejected: ${res.error ?? 'unknown error'}` });
+    } catch (e) {
+      setStatus({ tone: 'bad', text: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const toneColor = { ok: 'var(--status-good-strong)', bad: 'var(--status-critical)', info: 'var(--ink-muted)' };
+
+  return (
+    <div className="card max-w-xl p-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="panel-title">Use your own API key (optional)</div>
+        {active && (
+          <span className="rounded-sm px-1.5 py-0.5 text-[10px] font-semibold text-white" style={{ background: 'var(--status-good-strong)' }}>
+            active in this browser
+          </span>
         )}
+      </div>
+      <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--ink-muted)' }}>
+        Your key is stored only in this browser and sent along with each of <i>your</i> grading
+        requests; the server uses it for that call and never stores or logs it. While set, it takes
+        precedence over the server key. Any provider below works — including ones without a server key.
+      </p>
 
-        {!isLoading && providers.length === 0 && (
-          <div className="mt-4 border-l-2 p-3 text-sm" style={{ borderLeftColor: 'var(--status-warning)' }}>
-            No LLM provider is configured on the server. The platform runs in keyword-fallback
-            scoring mode. Add a key to <span className="font-data">.env</span> and restart to
-            enable live LLM grading.
-          </div>
-        )}
+      <label className="mt-4 block text-xs font-semibold" htmlFor="byo-provider">
+        Provider
+      </label>
+      <select
+        id="byo-provider"
+        className="mt-1 w-full rounded-sm border p-2 text-sm"
+        style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+        value={selected?.name ?? provider}
+        onChange={(e) => {
+          setProvider(e.target.value);
+          setModel('');
+        }}
+      >
+        {providers.map((p) => (
+          <option key={p.name} value={p.name}>
+            {p.name}{p.configured ? ' (server key configured)' : ''}
+          </option>
+        ))}
+      </select>
 
-        {providers.length > 0 && (
-          <>
-            <label className="mt-4 block text-xs font-semibold" htmlFor="pref-provider">
-              Provider
-            </label>
-            <select
-              id="pref-provider"
-              className="mt-1 w-full rounded-sm border p-2 text-sm"
-              style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
-              value={provider || data?.default || ''}
-              onChange={(e) => {
-                setProvider(e.target.value);
-                setModel('');
-              }}
-            >
-              {providers.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+      <label className="mt-3 block text-xs font-semibold" htmlFor="byo-model">
+        Model
+      </label>
+      <select
+        id="byo-model"
+        className="mt-1 w-full rounded-sm border p-2 text-sm"
+        style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+        value={model || selected?.defaultModel || ''}
+        onChange={(e) => setModel(e.target.value)}
+      >
+        {(selected?.models ?? []).map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
 
-            <label className="mt-3 block text-xs font-semibold" htmlFor="pref-model">
-              Model
-            </label>
-            <select
-              id="pref-model"
-              className="mt-1 w-full rounded-sm border p-2 text-sm"
-              style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
-              value={model || selected?.defaultModel || ''}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {(selected?.models ?? []).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+      <label className="mt-3 block text-xs font-semibold" htmlFor="byo-key">
+        API key
+      </label>
+      <input
+        id="byo-key"
+        type="password"
+        autoComplete="off"
+        className="mt-1 w-full rounded-sm border p-2 text-sm font-data"
+        style={{ borderColor: 'var(--gridline)', background: 'var(--surface-1)' }}
+        placeholder="sk-…"
+        value={apiKey}
+        onChange={(e) => setApiKey(e.target.value)}
+      />
 
-            <button
-              onClick={() => void save()}
-              className="mt-5 rounded-sm px-4 py-2 text-sm font-semibold text-white"
-              style={{ background: 'var(--accent)' }}
-            >
-              {saved ? 'Saved ✓' : 'Save preferences'}
-            </button>
-          </>
+      {status && (
+        <div className="mt-2 text-xs" role="status" style={{ color: toneColor[status.tone] }}>
+          {status.text}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          className="rounded-sm px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          style={{ background: 'var(--accent)' }}
+          disabled={!apiKey.trim()}
+          onClick={save}
+        >
+          Save in this browser
+        </button>
+        <button
+          className="rounded-sm border px-3 py-2 text-sm disabled:opacity-40"
+          style={{ borderColor: 'var(--gridline)' }}
+          disabled={!apiKey.trim()}
+          onClick={() => void test()}
+        >
+          Test key
+        </button>
+        {active && (
+          <button
+            className="rounded-sm border px-3 py-2 text-sm"
+            style={{ borderColor: 'var(--gridline)', color: 'var(--status-critical)' }}
+            onClick={clear}
+          >
+            Clear key
+          </button>
         )}
       </div>
     </div>

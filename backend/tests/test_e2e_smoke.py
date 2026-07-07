@@ -13,9 +13,10 @@ def test_zero_key_smoke(client):
                     headers={"X-Requested-With": "fetch"})
     assert r.status_code == 200
 
-    # no provider configured → keyword-fallback mode everywhere
+    # no provider configured → keyword-fallback mode everywhere (providers are
+    # still listed so a user could bring their own key)
     providers = client.get("/api/providers").json()["providers"]
-    assert providers == []
+    assert all(not p["configured"] for p in providers)
 
     # ── Mode C: free response, keyword scoring ───────────────────────────────
     r = client.post("/api/fr/submit", json={

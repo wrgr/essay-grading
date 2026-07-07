@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..core import security
+from ..core.llm import LLMError
 from ..services import llm_bridge
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -35,11 +36,14 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/chat")
-def chat(body: ChatRequest, user: dict = Depends(security.require_user)):
+def chat(body: ChatRequest, user: dict = Depends(security.require_user),
+         override: dict | None = Depends(llm_bridge.llm_override)):
     if not body.turns or body.turns[-1].speaker != "student":
         raise HTTPException(status_code=422, detail="Last turn must be the student's.")
     try:
-        llm_chat = llm_bridge.make_llm_chat(user)
+        llm_chat = llm_bridge.make_llm_chat(user, override)
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except llm_bridge.LLMNotConfigured as e:
         raise HTTPException(status_code=409, detail=str(e))
 
@@ -50,5 +54,8 @@ def chat(body: ChatRequest, user: dict = Depends(security.require_user)):
     prompt = (f"Conversation so far:\n\n{transcript}\n\n"
               "Write the assistant's next reply to the student's last message. "
               "Reply with the message text only.")
-    reply = llm_chat(TUTOR_SYSTEM, prompt)
+    try:
+        reply = llm_chat(TUTOR_SYSTEM, prompt)
+    except (LLMError, ConnectionError) as e:
+        raise HTTPException(status_code=502, detail=str(e))
     return {"reply": reply.strip()}

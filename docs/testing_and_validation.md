@@ -45,6 +45,10 @@ fallback path.
   scoring evidence, circuit prompts' research metadata).
 
 **Research surface & platform**
+- `test_byo_key.py` — browser-specified (BYO) key pass-through: override
+  resolution chain, header→core-call flow, unconfigured providers usable with a
+  user key, and the hygiene guarantee (the key appears in no database table,
+  runner state, or API response).
 - `test_assessment_export_schema.py` — schema v3: canonical columns exist, the
   idempotent widening migration works, every export column is documented in the
   data dictionary (enforced).

@@ -12,7 +12,8 @@ router = APIRouter(prefix="/api", tags=["grading"])
 
 
 @router.post("/assessments/{assessment_id}/grade")
-def grade(assessment_id: str, user: dict = Depends(security.require_user)):
+def grade(assessment_id: str, user: dict = Depends(security.require_user),
+          override: dict | None = Depends(llm_bridge.llm_override)):
     a = db.get_assessment(assessment_id)
     if not a or (user["role"] not in ("admin", "instructor")
                  and a["username"] != user["username"]):
@@ -31,7 +32,9 @@ def grade(assessment_id: str, user: dict = Depends(security.require_user)):
         raise HTTPException(status_code=422, detail="Assessment needs both an essay and a trace.")
 
     try:
-        llm_json = llm_bridge.make_llm_json(user)
+        llm_json = llm_bridge.make_llm_json(user, override)
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except llm_bridge.LLMNotConfigured as e:
         raise HTTPException(status_code=409, detail=str(e))
 

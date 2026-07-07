@@ -17,6 +17,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from ..core import security
+from ..core.llm import LLMError
 from ..db import database as db
 from ..services import llm_bridge, reports, scoring, thinking, writing_process
 
@@ -73,7 +74,8 @@ class SubmitRequest(BaseModel):
 
 
 @router.post("/submit")
-def submit(body: SubmitRequest, user: dict = Depends(security.require_user)):
+def submit(body: SubmitRequest, user: dict = Depends(security.require_user),
+           override: dict | None = Depends(llm_bridge.llm_override)):
     text = body.text.strip()[:MAX_SUBMISSION_CHARS]
     if not text:
         raise HTTPException(status_code=422, detail="Submission text is required.")
@@ -83,10 +85,15 @@ def submit(body: SubmitRequest, user: dict = Depends(security.require_user)):
     prompt_data = item["payload"]
 
     try:
-        name, model, cfg = llm_bridge.resolve_for_user(user)
+        name, model, cfg = llm_bridge.resolve_for_user(user, override)
         evaluation = scoring.score_free_response_with_llm(
             model, cfg["api_key"], cfg["base_url"], prompt_data, text)
         llm_meta = {"provider": name, "model": model}
+    except llm_bridge.UnknownProvider as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except (LLMError, ConnectionError) as e:
+        # A rejected/broken key (server or BYO) must fail loud and clean, not 500.
+        raise HTTPException(status_code=502, detail=str(e))
     except llm_bridge.LLMNotConfigured:
         evaluation = scoring.score_free_response_with_keywords(prompt_data, text)
         llm_meta = {"provider": None, "model": "keyword-fallback"}
@@ -167,7 +174,8 @@ def post_rating(assessment_id: str, body: PostRatingRequest,
 
 
 @router.post("/{assessment_id}/finalize")
-def finalize(assessment_id: str, user: dict = Depends(security.require_user)):
+def finalize(assessment_id: str, user: dict = Depends(security.require_user),
+             override: dict | None = Depends(llm_bridge.llm_override)):
     """Compute the deterministic SOLO profile, the writing-process overlay, and
     confidence calibration; render the Markdown report; persist the research row."""
     a = _get_owned_fr(assessment_id, user)
@@ -184,9 +192,9 @@ def finalize(assessment_id: str, user: dict = Depends(security.require_user)):
     profile = thinking.derive_fr_solo_level(evaluation)
 
     try:
-        _, model, cfg = llm_bridge.resolve_for_user(user)
+        _, model, cfg = llm_bridge.resolve_for_user(user, override)
         api_key, base_url, use_llm = cfg["api_key"], cfg["base_url"], True
-    except llm_bridge.LLMNotConfigured:
+    except (llm_bridge.LLMNotConfigured, llm_bridge.UnknownProvider):
         model, api_key, base_url, use_llm = "keyword-fallback", "", "", False
 
     writing_metrics = artifacts.get("writing_metrics") or {}
