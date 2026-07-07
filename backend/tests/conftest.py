@@ -14,6 +14,13 @@ _tmpdir = tempfile.mkdtemp(prefix="ap-test-")
 os.environ["ASSESSMENT_DATA_DIR"] = _tmpdir
 os.environ["ASSESSMENT_DB_PATH"] = str(Path(_tmpdir) / "test.db")
 
+# Tests must never depend on ambient provider credentials — force the
+# keyword-fallback path unless a test explicitly monkeypatches the bridge.
+for _var in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+             "GROQ_API_KEY", "MISTRAL_API_KEY", "GITHUB_MODELS_TOKEN"):
+    os.environ.pop(_var, None)
+os.environ["OLLAMA_BASE_URL"] = "http://127.0.0.1:9"  # unroutable — Ollama absent
+
 
 @pytest.fixture()
 def client():

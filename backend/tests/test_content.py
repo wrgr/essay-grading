@@ -1,10 +1,10 @@
 """Content pipeline: seeding, listing, version-bumping edits, provider info."""
 
 
-def test_content_seeded(student_client):
-    rubrics = student_client.get("/api/content/rubrics").json()
-    scenarios = student_client.get("/api/content/scenarios").json()
-    prompts = student_client.get("/api/content/prompts").json()
+def test_content_seeded(admin_client):
+    rubrics = admin_client.get("/api/content/rubrics").json()
+    scenarios = admin_client.get("/api/content/scenarios").json()
+    prompts = admin_client.get("/api/content/prompts").json()
     assert any(r["contentId"] == "mccr-w11-12-arg" for r in rubrics) or rubrics
     assert any(s["contentId"] == "Changing_Tire" for s in scenarios)
     assert any(p["contentId"] == "active_listening_paragraph" for p in prompts)
