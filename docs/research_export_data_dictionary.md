@@ -1,9 +1,14 @@
-# Research Export Data Dictionary
+# Research Export Data Dictionary — v3
 
-The admin research export is a CSV downloaded from `/admin/research-export.csv`.
-Each row represents one scored assessment unit: one free-response report, or one
-scenario inside a scenario report. The export is for analysis and review, not for
-certification or readiness gating.
+The research export is downloaded from `/api/export/research.csv` (or `.json`).
+Each row represents one scored assessment unit: one free-response submission, one
+scenario inside a scenario run, or one essay+trace grading session (Mode A). The
+export is for analysis and review, not for certification or readiness gating.
+
+**Schema version 3** extends the V5 v2 dictionary with Mode A columns and replaces
+report parsing entirely: every value is written from structured data at grading
+time (`export_schema_version` stamps which dictionary a row was written under, so
+longitudinal datasets remain interpretable across schema changes).
 
 ## Column Groups
 
@@ -14,10 +19,11 @@ certification or readiness gating.
 | `username` | account database | Login username for the learner whose report was exported. |
 | `display_name` | account database | Learner display name. |
 | `role` | account database | Account role at export time. |
-| `report_file` | report filename | Markdown report file used for this row. |
-| `report_type` | parsed report | `free_response` or `scenario`. |
-| `task_title` | parsed report | Prompt title for free response, or scenario title. |
-| `timestamp` | report filename | Timestamp inferred from the report filename, when available. |
+| `assessment_id` | assessments table | Stable id of the assessment this row belongs to. |
+| `mode` | assessments table | `essay_trace`, `scenario`, or `free_response`. |
+| `report_type` | evaluation row | `free_response`, `scenario`, or `essay_trace`. |
+| `task_title` | evaluation row | Prompt title, scenario title, or session name. |
+| `timestamp` | evaluation row | UTC timestamp recorded when the row was written. |
 | `export_schema_version` | export pipeline | Version of the structured export schema used to parse and persist this row. |
 
 ### Product-Only Assessment
@@ -54,6 +60,22 @@ against product-only scores and human annotations.
 | `confidence_calibration` | parsed writing process | Pre/post confidence change after explaining. |
 | `closing_nudge_used` | parsed writing process | Whether the learner added content after the final generic recall checkpoint. Context only; not scored. |
 | `process_caution` | parsed writing process | The report's standing caution that process signals are indirect supporting context, not verdicts. |
+
+### Mode A (Essay + AI Trace) Aggregates
+
+Populated only for `mode = essay_trace`; one row per graded session. Per-criterion
+records (passes, medians, evidence, overrides) live in the `score_records` table
+and the override-corpus export (`/api/export/override-corpus`).
+
+| Column | Source | Meaning |
+|---|---|---|
+| `trace_score_median` | score_records | Median effective score across trace-channel criteria (instructor overrides win). |
+| `product_score_median` | score_records | Median effective score across product-channel criteria. |
+| `mean_divergence` | score_records + rubric | Mean per-dimension (product − trace) divergence. |
+| `layer_b_label` | layer_b_results | RelianceScope interpretive label (hypothesis, not verdict). |
+| `layer_b_verification_rate` | layer_b_results | Fraction of dialogue segments with verification behavior. |
+| `override_count` | score_records | Number of instructor overrides on this session. |
+| `needs_review_count` | score_records | Number of records routed to instructor judgment. |
 
 ### Learner Self-Report
 

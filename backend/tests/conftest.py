@@ -22,31 +22,36 @@ for _var in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
 os.environ["OLLAMA_BASE_URL"] = "http://127.0.0.1:9"  # unroutable — Ollama absent
 
 
-@pytest.fixture()
-def client():
+def _make_client():
     from fastapi.testclient import TestClient
     from app.main import app
-    with TestClient(app) as c:
+    return TestClient(app)
+
+
+def _login(c, username, password):
+    resp = c.post(
+        "/api/auth/login",
+        json={"username": username, "password": password},
+        headers={"X-Requested-With": "fetch"},
+    )
+    assert resp.status_code == 200, resp.text
+    return c
+
+
+@pytest.fixture()
+def client():
+    with _make_client() as c:
         yield c
 
 
+# Separate TestClient per role so a test can hold both sessions at once.
 @pytest.fixture()
-def admin_client(client):
-    resp = client.post(
-        "/api/auth/login",
-        json={"username": "admin", "password": "admin123"},
-        headers={"X-Requested-With": "fetch"},
-    )
-    assert resp.status_code == 200, resp.text
-    return client
+def admin_client():
+    with _make_client() as c:
+        yield _login(c, "admin", "admin123")
 
 
 @pytest.fixture()
-def student_client(client):
-    resp = client.post(
-        "/api/auth/login",
-        json={"username": "emma", "password": "Learn@2024"},
-        headers={"X-Requested-With": "fetch"},
-    )
-    assert resp.status_code == 200, resp.text
-    return client
+def student_client():
+    with _make_client() as c:
+        yield _login(c, "emma", "Learn@2024")

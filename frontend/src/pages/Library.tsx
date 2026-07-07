@@ -60,8 +60,101 @@ export default function Library() {
         )
       )}
 
-      {tab === 'scenarios' && <ContentList items={scenarios} kindLabel="scenario" />}
-      {tab === 'prompts' && <ContentList items={prompts} kindLabel="free-response prompt" />}
+      {tab === 'scenarios' && (
+        <>
+          <DraftAuthor kind="scenario" onSaved={() => void qc.invalidateQueries({ queryKey: ['content', 'scenarios'] })} />
+          <ContentList items={scenarios} kindLabel="scenario" />
+        </>
+      )}
+      {tab === 'prompts' && (
+        <>
+          <DraftAuthor kind="prompt" onSaved={() => void qc.invalidateQueries({ queryKey: ['content', 'prompts'] })} />
+          <ContentList items={prompts} kindLabel="free-response prompt" />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** AI-assisted authoring (staff): describe the task, review the generated draft,
+ *  save it as a new versioned content item. */
+function DraftAuthor({ kind, onSaved }: { kind: 'scenario' | 'prompt'; onSaved: () => void }) {
+  const [description, setDescription] = useState('');
+  const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function generate() {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.post<{ draft: Record<string, unknown> }>(
+        `/api/admin/authoring/${kind}-draft`, { description });
+      setDraft(res.draft);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    if (!draft) return;
+    setBusy(true);
+    setError('');
+    try {
+      const path = kind === 'scenario' ? 'scenarios' : 'prompts';
+      await api.put(`/api/content/${path}/${draft.id as string}`, { payload: draft });
+      setDraft(null);
+      setDescription('');
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card mb-4 p-4">
+      <div className="panel-title">Draft a new {kind} with AI</div>
+      <p className="mt-1 text-xs" style={{ color: 'var(--ink-muted)' }}>
+        Generates a first draft (CTA probe bank / construct-exemplar key points) for you to review
+        and edit before it reaches any learner. Requires a configured LLM provider.
+      </p>
+      <div className="mt-2 flex gap-2">
+        <input
+          className="flex-1 rounded-sm border p-2 text-sm"
+          style={{ borderColor: 'var(--gridline)' }}
+          placeholder={kind === 'scenario' ? 'e.g. "diagnosing why a circuit breaker keeps tripping"' : 'e.g. "explain how photosynthesis works"'}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <button
+          className="rounded-sm px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+          style={{ background: 'var(--accent)' }}
+          disabled={busy || !description.trim()}
+          onClick={() => void generate()}
+        >
+          {busy ? 'Generating…' : 'Generate draft'}
+        </button>
+      </div>
+      {error && <div role="alert" className="mt-2 text-xs" style={{ color: 'var(--status-critical)' }}>{error}</div>}
+      {draft && (
+        <div className="mt-3">
+          <pre className="max-h-80 overflow-auto rounded p-2 text-[10px]" style={{ background: 'var(--page)' }}>
+            {JSON.stringify(draft, null, 2)}
+          </pre>
+          <div className="mt-2 flex gap-2">
+            <button className="rounded-sm px-3 py-1.5 text-sm font-medium text-white" style={{ background: 'var(--status-good-strong)' }} disabled={busy} onClick={() => void save()}>
+              Save to library
+            </button>
+            <button className="rounded-sm border px-3 py-1.5 text-sm" style={{ borderColor: 'var(--gridline)' }} onClick={() => setDraft(null)}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

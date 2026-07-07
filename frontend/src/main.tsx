@@ -16,6 +16,7 @@ import Write from './pages/Write';
 import Library from './pages/Library';
 import AssessFR from './pages/AssessFR';
 import AssessScenario from './pages/AssessScenario';
+import Admin from './pages/Admin';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -36,6 +37,7 @@ const router = createHashRouter([
       { path: '/library', element: <Library /> },
       { path: '/assess/fr', element: <AssessFR /> },
       { path: '/assess/scenario', element: <AssessScenario /> },
+      { path: '/admin', element: <Admin /> },
     ],
   },
 ]);

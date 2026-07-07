@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import auth, chat, content, fr, grading, scenario, sessions
+from .api import admin, auth, chat, content, export, fr, grading, scenario, sessions
 from .db import database as db
 from .db import seed_content
 
@@ -27,6 +27,8 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(fr.router)
     app.include_router(scenario.router)
+    app.include_router(admin.router)
+    app.include_router(export.router)
 
     @app.get("/api/health")
     def health():
