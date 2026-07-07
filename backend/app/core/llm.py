@@ -412,6 +412,11 @@ def _cap_max_tokens(base_url, max_tokens):
 def _call_llm(model, api_key, base_url, max_tokens, system, user, think=None, json_mode=False,
               temperature=None, seed=None):
     """Dispatch to the right backend. No package is required at import time."""
+    # Platform addition: fail fast (non-retryable) when no key is configured,
+    # so keyword-fallback code paths never burn the retry ladder on a dead call.
+    # Ollama's sentinel key ("ollama") passes llm_is_available.
+    if not llm_is_available(api_key):
+        raise LLMError("No API key configured for this provider.")
     max_tokens = _cap_max_tokens(base_url, max_tokens)
     try:
         if _ANTHROPIC_HOST in base_url:

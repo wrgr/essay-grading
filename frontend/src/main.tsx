@@ -15,6 +15,7 @@ import Review from './pages/Review';
 import Write from './pages/Write';
 import Library from './pages/Library';
 import AssessFR from './pages/AssessFR';
+import AssessScenario from './pages/AssessScenario';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -34,6 +35,7 @@ const router = createHashRouter([
       { path: '/write', element: <Write /> },
       { path: '/library', element: <Library /> },
       { path: '/assess/fr', element: <AssessFR /> },
+      { path: '/assess/scenario', element: <AssessScenario /> },
     ],
   },
 ]);
