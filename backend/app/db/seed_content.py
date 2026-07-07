@@ -37,6 +37,51 @@ def seed(verbose: bool = True) -> int:
     for path in sorted((CONTENT_DIR / "prompts").glob("*.json")):
         payload = loaders.load_prompt(path)
         n += _seed_item("fr_prompt", payload["id"], "1.0", payload, verbose)
+    n += seed_exemplars(verbose)
     if verbose and n == 0:
         print("[seed] Content already present; skipped.")
+    return n
+
+
+# TGFWA's four synthetic exemplar sessions (one per divergence pattern,
+# including the adversarial parrot), assigned to demo students so the
+# cold-start demo needs zero setup and no API key.
+_EXEMPLAR_OWNERS = {
+    "exemplar-maya": "emma",
+    "exemplar-jordan": "liam",
+    "exemplar-sam": "sofia",
+    "exemplar-alex": "james",
+}
+
+
+def seed_exemplars(verbose: bool = True) -> int:
+    from ..services.grading import exemplars as ex
+
+    rubric_item = db.get_content("rubric", "mccr-w11-12-arg")
+    if not rubric_item:
+        return 0
+    rubric = rubric_item["payload"]
+    n = 0
+    for definition in ex.load_exemplar_defs():
+        if db.get_assessment(definition["id"]):
+            continue
+        expanded = ex.expand_exemplar(definition, rubric)
+        db.create_assessment(
+            username=_EXEMPLAR_OWNERS.get(definition["id"], "emma"),
+            mode="essay_trace",
+            name=expanded["name"],
+            description=expanded["description"],
+            content_id="mccr-w11-12-arg",
+            content_version=rubric_item["version"],
+            artifacts={"essay": expanded["essay"], "trace": expanded["trace"]},
+            is_exemplar=True,
+            status="graded",
+            assessment_id=definition["id"],
+        )
+        for rec in expanded["scores"]:
+            db.upsert_score_record(definition["id"], rec)
+        db.upsert_layer_b(definition["id"], expanded["layer_b"])
+        if verbose:
+            print(f"[seed] exemplar: {definition['id']}")
+        n += 1
     return n

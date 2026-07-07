@@ -10,6 +10,10 @@ import AppShell from './AppShell';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
+import SessionDetail from './pages/SessionDetail';
+import Review from './pages/Review';
+import Write from './pages/Write';
+import Library from './pages/Library';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -24,6 +28,10 @@ const router = createHashRouter([
     children: [
       { path: '/', element: <Home /> },
       { path: '/settings', element: <Settings /> },
+      { path: '/sessions/:id', element: <SessionDetail /> },
+      { path: '/review', element: <Review /> },
+      { path: '/write', element: <Write /> },
+      { path: '/library', element: <Library /> },
     ],
   },
 ]);

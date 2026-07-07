@@ -655,6 +655,17 @@ def set_score_override(assessment_id: str, criterion_id: str, channel: str,
         return cur.rowcount > 0
 
 
+def clear_score_override(assessment_id: str, criterion_id: str, channel: str) -> bool:
+    with _conn() as c:
+        cur = c.execute(
+            "UPDATE score_records SET override_score=NULL, override_rationale='', override_ts='' "
+            "WHERE assessment_id=? AND criterion_id=? AND channel=?",
+            (assessment_id, criterion_id, channel),
+        )
+        c.commit()
+        return cur.rowcount > 0
+
+
 def review_queue():
     """All score records routed to instructor judgment, unresolved first."""
     with _conn() as c:
