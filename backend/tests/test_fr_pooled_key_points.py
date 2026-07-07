@@ -332,18 +332,11 @@ class ReportParserRoundTripTests(unittest.TestCase):
 
 class DatabasePoolReviewTests(unittest.TestCase):
     """Quality Criteria #6: novel-equivalent review rows round-trip pool_id, and
-    promote-as-new-member appends a member to the right pool. Skipped if this sandbox
-    can't import database.py (it needs werkzeug, which isn't installed here) -- the
-    existing test suite avoids that dependency for the same reason; this still runs
-    for real in a properly provisioned dev/CI environment.
-    """
+    promote-as-new-member appends a member to the right pool."""
 
     @classmethod
     def setUpClass(cls):
-        try:
-            import database
-        except ImportError as e:
-            raise unittest.SkipTest(f"database.py not importable in this environment: {e}")
+        from app.db import database
         cls.database = database
 
     def setUp(self):

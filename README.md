@@ -22,7 +22,15 @@ make seed       # seed demo users and content
 make dev        # API on :8000, web on :5173
 ```
 
-Open http://localhost:5173 and sign in (demo accounts are printed by `make seed`; default admin is `admin` / `admin123`).
+Open http://localhost:5173 and sign in with a demo account:
+
+| Account | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | admin (users, reliability dashboard, export) |
+| `instructor` | `Teach@2024` | instructor (review queue, overrides, rubric/library) |
+| `emma` `liam` `sofia` `james` `priya` `tyler` | `Learn@2024` | students (own assessments only) |
+
+Change these before any non-demo use.
 
 No API key? The platform still runs: scoring falls back to keyword matching, and bundled exemplar sessions carry precomputed scores. Add provider keys in `.env` (copy `.env.example`) to enable live LLM grading — keys stay server-side and are never sent to the browser.
 
